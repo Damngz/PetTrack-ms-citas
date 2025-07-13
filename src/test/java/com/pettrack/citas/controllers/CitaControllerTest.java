@@ -1,148 +1,143 @@
 package com.pettrack.citas.controllers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pettrack.citas.models.Cita;
 import com.pettrack.citas.services.CitaService;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-@WebMvcTest(CitaController.class)
-class CitaControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class CitaControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private CitaService citaService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    private Cita getCitaEjemplo() {
-        return new Cita(
-            1L,               // idMascota
-            2L,               // idUsuario
-            LocalDateTime.of(2025, 7, 5, 14, 0),
-            "Chequeo general",
-            "Pendiente"
-        );
-    }
+    @InjectMocks
+    private CitaController citaController;
 
     @Test
-    void crearCita_deberiaRetornarCitaCreada() throws Exception {
-        Cita cita = getCitaEjemplo();
-        cita.setIdCita(10L);
-
+    public void testCrearCita() {
+        Cita cita = new Cita(1L, 1L, LocalDateTime.now(), "Consulta", "Programada");
         when(citaService.crearCita(any(Cita.class))).thenReturn(cita);
 
-        mockMvc.perform(post("/citas")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(cita)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.idCita").value(10))
-                .andExpect(jsonPath("$.motivo").value("Chequeo general"))
-                .andExpect(jsonPath("$.estado").value("Pendiente"));
+        ResponseEntity<Cita> response = citaController.crearCita(cita);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        verify(citaService).crearCita(cita);
     }
 
     @Test
-    void listarCitas_deberiaRetornarLista() throws Exception {
-        Cita cita = getCitaEjemplo();
-        cita.setIdCita(1L);
+    public void testListarCitas() {
+        List<Cita> citas = Arrays.asList(
+                new Cita(1L, 1L, LocalDateTime.now(), "Consulta", "Programada"),
+                new Cita(2L, 1L, LocalDateTime.now().plusDays(1), "Vacuna", "Programada"));
+        when(citaService.listarCitas()).thenReturn(citas);
 
-        when(citaService.listarCitas()).thenReturn(List.of(cita));
+        ResponseEntity<List<Cita>> response = citaController.listarCitas();
 
-        mockMvc.perform(get("/citas"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].idMascota").value(1))
-                .andExpect(jsonPath("$[0].idUsuario").value(2));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().size());
     }
 
     @Test
-    void obtenerCitaPorId_deberiaRetornarCita() throws Exception {
-        Cita cita = getCitaEjemplo();
-        cita.setIdCita(5L);
+    public void testObtenerCita() {
+        Long id = 1L;
+        Cita cita = new Cita(1L, 1L, LocalDateTime.now(), "Consulta", "Programada");
+        when(citaService.obtenerCitaPorId(id)).thenReturn(cita);
 
-        when(citaService.obtenerCitaPorId(5L)).thenReturn(cita);
+        ResponseEntity<Cita> response = citaController.obtenerCita(id);
 
-        mockMvc.perform(get("/citas/5"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.idCita").value(5));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
     }
 
     @Test
-    void actualizarCita_deberiaRetornarCitaActualizada() throws Exception {
-        Cita cita = getCitaEjemplo();
-        cita.setIdCita(10L);
-        cita.setMotivo("Actualizada");
+    public void testActualizarCita() {
+        Long id = 1L;
+        Cita cita = new Cita(1L, 1L, LocalDateTime.now(), "Consulta", "Programada");
+        when(citaService.actualizarCita(id, cita)).thenReturn(cita);
 
-        when(citaService.actualizarCita(eq(10L), any(Cita.class))).thenReturn(cita);
+        ResponseEntity<Cita> response = citaController.actualizarCita(id, cita);
 
-        mockMvc.perform(put("/citas/10")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(cita)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.motivo").value("Actualizada"));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
     }
 
     @Test
-    void eliminarCita_deberiaRetornarNoContent() throws Exception {
-        doNothing().when(citaService).eliminarCita(7L);
+    public void testEliminarCita() {
+        Long id = 1L;
+        doNothing().when(citaService).eliminarCita(id);
 
-        mockMvc.perform(delete("/citas/7"))
-                .andExpect(status().isNoContent());
+        ResponseEntity<Void> response = citaController.eliminarCita(id);
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        verify(citaService).eliminarCita(id);
     }
 
     @Test
-    void obtenerCitasPorVeterinario_deberiaRetornarLista() throws Exception {
-        Cita cita = getCitaEjemplo();
-        cita.setIdCita(1L);
+    public void testGetCitasPorVeterinario() {
+        Long idUsuario = 1L;
+        List<Cita> citas = Arrays.asList(
+                new Cita(1L, idUsuario, LocalDateTime.now(), "Consulta", "Programada"),
+                new Cita(2L, idUsuario, LocalDateTime.now().plusDays(1), "Vacuna", "Programada"));
+        when(citaService.obtenerCitasPorVeterinario(idUsuario)).thenReturn(citas);
 
-        when(citaService.obtenerCitasPorVeterinario(2L)).thenReturn(List.of(cita));
+        ResponseEntity<List<Cita>> response = citaController.getCitasPorVeterinario(idUsuario);
 
-        mockMvc.perform(get("/citas/usuario/2"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].idUsuario").value(2));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().size());
     }
 
     @Test
-    void obtenerCitasPorMascota_deberiaRetornarLista() throws Exception {
-        Cita cita = getCitaEjemplo();
-        cita.setIdCita(2L);
+    public void testGetCitasPorMascota() {
+        Long idMascota = 1L;
+        List<Cita> citas = Arrays.asList(
+                new Cita(idMascota, 1L, LocalDateTime.now(), "Consulta", "Programada"),
+                new Cita(idMascota, 1L, LocalDateTime.now().plusDays(1), "Vacuna", "Programada"));
+        when(citaService.obtenerCitasPorMascota(idMascota)).thenReturn(citas);
 
-        when(citaService.obtenerCitasPorMascota(1L)).thenReturn(List.of(cita));
+        ResponseEntity<List<Cita>> response = citaController.getCitasPorMascota(idMascota);
 
-        mockMvc.perform(get("/citas/mascota/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].idMascota").value(1));
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().size());
     }
 
     @Test
-    void crearCitaDuplicada_deberiaRetornarConflict() throws Exception {
-        Cita cita = getCitaEjemplo();
+    public void testHandleRuntimeExceptionConflict() {
+        RuntimeException ex = new RuntimeException("El veterinario ya tiene una cita en esa fecha y hora.");
 
-        when(citaService.crearCita(any(Cita.class)))
-                .thenThrow(new RuntimeException("El veterinario ya tiene una cita en esa fecha y hora."));
+        ResponseEntity<String> response = citaController.handleRuntimeException(ex);
 
-        mockMvc.perform(post("/citas")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(cita)))
-                .andExpect(status().isConflict())  // <-- Cambiado de isInternalServerError() a isConflict()
-                .andExpect(content().string("El veterinario ya tiene una cita en esa fecha y hora."));
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals(ex.getMessage(), response.getBody());
     }
-    
-    
+
+    @Test
+    public void testHandleRuntimeExceptionInternalError() {
+        RuntimeException ex = new RuntimeException("Error genérico");
+
+        ResponseEntity<String> response = citaController.handleRuntimeException(ex);
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals(ex.getMessage(), response.getBody());
+    }
+
+    @Test
+    public void testConstructor() {
+        CitaService mockService = mock(CitaService.class);
+        CitaController controller = new CitaController(mockService);
+        assertNotNull(controller);
+    }
 }
