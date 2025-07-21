@@ -8,6 +8,7 @@ class CitasApplicationTests {
 
 	@Test
 	void contextLoads() {
+		CitasApplication.main(new String[] {});
 	}
 
 }

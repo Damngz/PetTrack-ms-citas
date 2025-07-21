@@ -2,6 +2,8 @@ package com.pettrack.citas.controllers;
 
 import com.pettrack.citas.models.Cita;
 import com.pettrack.citas.services.CitaService;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,4 +54,12 @@ public class CitaController {
   public ResponseEntity<List<Cita>> getCitasPorMascota(@PathVariable Long idMascota) {
     return ResponseEntity.ok(citaService.obtenerCitasPorMascota(idMascota));
   }
+  @ExceptionHandler(RuntimeException.class)
+  public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+      if (ex.getMessage().contains("ya tiene una cita")) {
+          return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+      }
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ex.getMessage());
+  }
+
 }
